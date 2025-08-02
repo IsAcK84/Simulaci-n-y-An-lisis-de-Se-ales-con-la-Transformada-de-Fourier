@@ -1,0 +1,246 @@
+%==========================================================================
+% ACTIVIDAD: IMPLEMENTACIÓN Y EVALUACIÓN DE FILTROS DIGITALES
+% Autor: Noé Isaac Martinez Saucedo
+% Fecha: 29/07/2025
+% Descripción: Este script diseña e implementa filtros digitales pasa bajos,
+%              pasa altos y pasa bandas en Octave Online. Se analizan los
+%              efectos de los filtros en una señal compuesta por tres
+%              frecuencias distintas, evaluando los resultados en el
+%              dominio del tiempo y de la frecuencia.
+%		cabe mencionar que este codigo se tiene que ingresar por secciones,
+%		cada  "<•>"  para ir generando las graficas en en Octave Online.
+%==========================================================================
+
+% "<•>"
+% --- 1. CONFIGURACIÓN INICIAL Y CREACIÓN DE LA SEÑAL DE PRUEBA ---
+
+% Definimos los parámetros de la simulación.
+fs = 1000;         % Frecuencia de muestreo (1000 Hz)
+T = 1/fs;          % Período de muestreo en segundos.
+duration = 2;      % Duración total de la señal (2 segundos)
+t = 0:T:(duration-T); % Creamos el vector de tiempo.
+
+% Creamos una señal compuesta por tres senoides con distintas frecuencias
+% para probar la selectividad de los filtros.
+f1 = 10;   % Frecuencia baja (10 Hz)
+f2 = 50;   % Frecuencia media (50 Hz)
+f3 = 200;  % Frecuencia alta (200 Hz)
+
+signal_component_1 = 0.8 * sin(2 * pi * f1 * t);
+signal_component_2 = 0.4 * sin(2 * pi * f2 * t);
+signal_component_3 = 0.2 * sin(2 * pi * f3 * t);
+
+composite_signal = signal_component_1 + signal_component_2 + signal_component_3;
+
+
+% "<•>"
+% --- 2. VISUALIZACIÓN DE LA SEÑAL ORIGINAL SIN FILTRAR ---
+
+% Mostramos la señal antes de filtrar para tener un punto de referencia claro.
+figure(1);
+
+% Gráfica en el Dominio del Tiempo
+subplot(2, 1, 1);
+plot(t, composite_signal);
+title('Señal Compuesta (Original) en el Tiempo');
+xlabel('Tiempo (s)');
+ylabel('Amplitud');
+xlim([0 0.5]); 		% Nos enfocamos en una porción para ver los detalles.
+grid on;
+
+% Gráfica en el Dominio de la Frecuencia (Espectro)
+subplot(2, 1, 2);
+N = length(composite_signal);
+yf_composite = fft(composite_signal);
+xf_composite = (0:N-1)*(fs/N);
+plot(xf_composite(1:N/2), abs(yf_composite(1:N/2))/(N/2));
+title('Espectro de Frecuencia de la Señal Original');
+xlabel('Frecuencia (Hz)');
+ylabel('Magnitud');
+xlim([0 fs/2]);		% Mostramos todo el rango de frecuencias de interés.
+grid on;
+
+%==========================================================================
+% --- FILTRO PASA BAJOS ---
+%==========================================================================
+
+% "<•>"
+% --- 3. DISEÑO Y APLICACIÓN DEL FILTRO PASA BAJOS ---
+
+% Objetivo: Dejar pasar frecuencias bajas y atenuar las altas.
+% Elegimos una frecuencia de corte de 70 Hz para eliminar la componente de 200 Hz.
+order_lp = 5;     	 		% Orden del filtro. Un valor más alto hace la transición más abrupta.
+cutoff_freq_lp = 70;
+Wn_lp = cutoff_freq_lp / (fs / 2); 	% Frecuencia de corte normalizada.
+
+[b_lp, a_lp] = butter(order_lp, Wn_lp, 'low'); 			% Diseño del filtro Butterworth pasa bajos.
+filtered_lp_composite = filter(b_lp, a_lp, composite_signal); 	% Aplicamos el filtro.
+
+% --- Gráficas de comparación para el Filtro Pasa Bajos ---
+figure(2);
+
+% Gráfica de la respuesta en frecuencia del filtro
+subplot(2, 1, 1);
+freqz(b_lp, a_lp, 1024, fs);
+title('Respuesta en Frecuencia del Filtro Pasa Bajos');
+
+% Comparación de la señal en el espectro (frecuencia)
+subplot(2, 1, 2);
+yf_filtered_lp = fft(filtered_lp_composite);
+plot(xf_composite(1:N/2), abs(yf_composite(1:N/2))/(N/2), 'b', 'DisplayName', 'Original');
+hold on;
+plot(xf_composite(1:N/2), abs(yf_filtered_lp(1:N/2))/(N/2), 'r', 'DisplayName', 'Filtrada Pasa Bajos');
+hold off;
+title('Comparación de Espectros (Pasa Bajos)');
+xlabel('Frecuencia (Hz)'); ylabel('Magnitud');
+xlim([0 fs/2]); grid on; legend('Location', 'northeast');
+
+
+% "<•>"
+% --- 4. DISEÑO Y APLICACIÓN DEL FILTRO PASA ALTOS ---
+
+% Objetivo: Dejar pasar frecuencias altas y atenuar las bajas.
+% Elegimos una frecuencia de corte de 100 Hz para eliminar las componentes de 10 Hz y 50 Hz.
+order_hp = 5;       % Orden del filtro.
+cutoff_freq_hp = 100;
+Wn_hp = cutoff_freq_hp / (fs / 2); % Frecuencia de corte normalizada.
+
+[b_hp, a_hp] = butter(order_hp, Wn_hp, 'high'); % Diseño del filtro Butterworth pasa altos.
+filtered_hp_composite = filter(b_hp, a_hp, composite_signal); % Aplicamos el filtro.
+
+% --- Gráficas de comparación para el Filtro Pasa Altos ---
+figure(3);
+
+% Gráfica de la respuesta en frecuencia del filtro
+subplot(2, 1, 1);
+freqz(b_hp, a_hp, 1024, fs);
+title('Respuesta en Frecuencia del Filtro Pasa Altos');
+
+% Comparación de la señal en el espectro (frecuencia)
+subplot(2, 1, 2);
+yf_filtered_hp = fft(filtered_hp_composite);
+plot(xf_composite(1:N/2), abs(yf_composite(1:N/2))/(N/2), 'b', 'DisplayName', 'Original');
+hold on;
+plot(xf_composite(1:N/2), abs(yf_filtered_hp(1:N/2))/(N/2), 'r', 'DisplayName', 'Filtrada Pasa Altos');
+hold off;
+title('Comparación de Espectros (Pasa Altos)');
+xlabel('Frecuencia (Hz)'); ylabel('Magnitud');
+xlim([0 fs/2]); grid on; legend('Location', 'northeast');
+
+%==========================================================================
+% --- FILTRO PASA ALTOS ---
+%==========================================================================
+
+% "<•>"
+% --- 5. DISEÑO Y APLICACIÓN DEL FILTRO PASA BANDAS ---
+
+% Objetivo: Dejar pasar solo un rango específico de frecuencias.
+% Elegimos el rango de 30 Hz a 100 Hz para aislar la componente de 50 Hz.
+order_bp = 5;       % Orden del filtro.
+low_cutoff_bp = 30;  % Frecuencia de corte inferior (Hz).
+high_cutoff_bp = 100; % Frecuencia de corte superior (Hz).
+Wn_bp = [low_cutoff_bp, high_cutoff_bp] / (fs / 2); % Rango de frecuencias de corte normalizadas.
+
+[b_bp, a_bp] = butter(order_bp, Wn_bp, 'bandpass'); % Diseño del filtro Butterworth pasa bandas.
+filtered_bp_composite = filter(b_bp, a_bp, composite_signal); % Aplicamos el filtro.
+
+% --- Gráficas de comparación para el Filtro Pasa Bandas ---
+figure(4);
+
+% Gráfica de la respuesta en frecuencia del filtro
+subplot(2, 1, 1);
+freqz(b_bp, a_bp, 1024, fs);
+title('Respuesta en Frecuencia del Filtro Pasa Bandas');
+
+% Comparación de la señal en el espectro (frecuencia)
+subplot(2, 1, 2);
+yf_filtered_bp = fft(filtered_bp_composite);
+plot(xf_composite(1:N/2), abs(yf_composite(1:N/2))/(N/2), 'b', 'DisplayName', 'Original');
+hold on;
+plot(xf_composite(1:N/2), abs(yf_filtered_bp(1:N/2))/(N/2), 'r', 'DisplayName', 'Filtrada Pasa Bandas');
+hold off;
+title('Comparación de Espectros (Pasa Bandas)');
+xlabel('Frecuencia (Hz)'); ylabel('Magnitud');
+xlim([0 fs/2]); grid on; legend('Location', 'northeast');
+
+
+% "<•>"
+% --- 6. APLICACIÓN Y COMPARACIÓN (FILTRO PASA ALTOS) ---
+
+% Aplicamos el filtro a la señal compuesta.
+filtered_hp_composite = filter(b_hp, a_hp, composite_signal);
+
+% Comparación de la señal en el tiempo y el espectro.
+figure(5);
+
+% Dominio del tiempo: Comparación de la forma de onda
+subplot(2, 1, 1);
+plot(t, composite_signal, 'b', 'DisplayName', 'Original');
+hold on;
+plot(t, filtered_hp_composite, 'r', 'DisplayName', 'Filtrada Pasa Altos');
+hold off;
+title('Señal Original vs. Pasa Altos Filtrada (Tiempo)');
+xlabel('Tiempo (s)'); ylabel('Amplitud');
+xlim([0 0.5]); grid on; legend('Location', 'northeast');
+
+% Dominio de la frecuencia: Comparación de los espectros
+subplot(2, 1, 2);
+yf_filtered_hp = fft(filtered_hp_composite);
+plot(xf_composite(1:N/2), abs(yf_composite(1:N/2))/(N/2), 'b', 'DisplayName', 'Original');
+hold on;
+plot(xf_composite(1:N/2), abs(yf_filtered_hp(1:N/2))/(N/2), 'r', 'DisplayName', 'Filtrada Pasa Altos');
+hold off;
+title('Comparación de Espectros (Pasa Altos)');
+xlabel('Frecuencia (Hz)'); ylabel('Magnitud');
+xlim([0 fs/2]); grid on; legend('Location', 'northeast');
+
+%==========================================================================
+% --- FILTRO PASA BANDAS ---
+%==========================================================================
+
+% "<•>"
+% --- 7. DISEÑO DEL FILTRO PASA BANDAS ---
+
+% Objetivo: Dejar pasar solo un rango específico de frecuencias.
+% Elegimos el rango de 30 Hz a 100 Hz para aislar la componente de 50 Hz.
+order_bp = 5;       % Orden del filtro.
+low_cutoff_bp = 30;  % Frecuencia de corte inferior (Hz).
+high_cutoff_bp = 100; % Frecuencia de corte superior (Hz).
+Wn_bp = [low_cutoff_bp, high_cutoff_bp] / (fs / 2); % Rango de frecuencias de corte normalizadas.
+
+[b_bp, a_bp] = butter(order_bp, Wn_bp, 'bandpass'); % Diseño del filtro Butterworth pasa bandas.
+
+% --- Gráfica de la respuesta en frecuencia del filtro pasa bandas ---
+figure(6);
+freqz(b_bp, a_bp, 1024, fs);
+title('Respuesta en Frecuencia del Filtro Pasa Bandas');
+
+% "<•>"
+% --- 8. APLICACIÓN Y COMPARACIÓN (FILTRO PASA BANDAS) ---
+
+% Aplicamos el filtro a la señal compuesta.
+filtered_bp_composite = filter(b_bp, a_bp, composite_signal);
+
+% Comparación de la señal en el tiempo y el espectro.
+figure(7);
+
+% Dominio del tiempo: Comparación de la forma de onda
+subplot(2, 1, 1);
+plot(t, composite_signal, 'b', 'DisplayName', 'Original');
+hold on;
+plot(t, filtered_bp_composite, 'r', 'DisplayName', 'Filtrada Pasa Bandas');
+hold off;
+title('Señal Original vs. Pasa Bandas Filtrada (Tiempo)');
+xlabel('Tiempo (s)'); ylabel('Amplitud');
+xlim([0 0.5]); grid on; legend('Location', 'northeast');
+
+% Dominio de la frecuencia: Comparación de los espectros
+subplot(2, 1, 2);
+yf_filtered_bp = fft(filtered_bp_composite);
+plot(xf_composite(1:N/2), abs(yf_composite(1:N/2))/(N/2), 'b', 'DisplayName', 'Original');
+hold on;
+plot(xf_composite(1:N/2), abs(yf_filtered_bp(1:N/2))/(N/2), 'r', 'DisplayName', 'Filtrada Pasa Bandas');
+hold off;
+title('Comparación de Espectros (Pasa Bandas)');
+xlabel('Frecuencia (Hz)'); ylabel('Magnitud');
+xlim([0 fs/2]); grid on; legend('Location', 'northeast');
